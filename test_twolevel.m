@@ -35,8 +35,9 @@ del_omega_a = zeros(1,zsteps);
 del_omega_a(start_device:end_device) = 2*pi*5e13;
 nk1 = zeros(1,zsteps);
 nk1(start_device:end_device) = mu0./(hbar*omega_a(start_device:end_device));
+delN0_val = 1e26;
 delN0=zeros(1,zsteps);
-delN0(start_device:end_device) = 1e26;
+delN0(start_device:end_device) = delN0_val;
 tau21 = 20e-9;
 invtau21 = zeros(1,zsteps);
 invtau21(start_device:end_device) =1/tau21;
@@ -51,12 +52,12 @@ delz = 2*c0*delt;
 up_hx = ((c0*delt)/delz)./mu_xx;
 up_dy = (c0*delt)/delz;
 
-src_lambda = 100*delz;
+src_lambda = 1000*delz;
 src_omega = 2*pi*c0/src_lambda;
 src_period = 0.2*src_lambda/c0;
 src_freq = 1/src_period;
 
-max_freq = 0.5*src_freq;
+max_freq = 2*omega_a_val/(2*pi);
 
 %prepare fourier transform arrays
 nfreqs = 400;
@@ -69,9 +70,9 @@ norm_src = zeros(1, nfreqs);
 
 time = linspace(0,delt*tsteps, tsteps);
 nsrc = 1;
-Ey0=1e5;
-Ey_source = Ey0*exp(-((time-6*src_period)/(src_period)).^2);
-Hx_source = -Ey0*sqrt(eps_yy(1,zsource)/mu_xx(1,zsource)).*exp(-(((time+0.5*delz*nsrc/c0+0.5*delt)-6*src_period)/(src_period)).^2);
+Ey0=1e7;
+Ey_source = Ey0*exp(-((time-6*src_period)/(src_period)).^2).*sin(omega_a_val*time);
+Hx_source = -Ey0*sqrt(eps_yy(1,zsource)/mu_xx(1,zsource)).*exp(-(((time+0.5*delz*nsrc/c0+0.5*delt)-6*src_period)/(src_period)).^2).*sin(omega_a_val*time);
 N=0;
 Nspace = 100;
 
@@ -124,16 +125,24 @@ for t=1:tsteps-1
 
 
 	if N>Nspace
-		subplot(2,1,1);		
+		subplot(4,1,1);		
 		plot( linspace(1,zsteps,zsteps),Ey,"r",
 			linspace(1,zsteps,zsteps),Hx,"b");
-		title(num2str(t));		
+		title(sprintf("%d fields", t));
+		legend("Ey", "Hz");		
 		ylim([-1.5*Ey0,1.5*Ey0],"manual");
-		subplot(2,1,2);
-		plot(freqs,(abs(ref)./abs(norm_src)).^2,"m",
+		subplot(4,1,2);
+		plot( linspace(1,zsteps,zsteps),(delN-delN0)/delN0_val,"r");
+		title("population difference");
+		subplot(4,1,3);
+		plot( linspace(1,zsteps,zsteps),Py,"r");
+		title("polarization");
+		subplot(4,1,4);
+		plot(2*pi*freqs,(abs(ref)./abs(norm_src)).^2,"m",
 			2*pi*freqs,(abs(trans)./abs(norm_src)).^2,"g",
 			2*pi*freqs, (abs(ref)./abs(norm_src)).^2 + (abs(trans)./abs(norm_src)).^2,"b");		
-		title("reflectance and transmittance");		
+		title("reflectance and transmittance");
+		legend("Ref", "Trans", "Tot");
 		ylim([0,1.2],"manual");
 		pause(0.001);
 		N = 0;		
