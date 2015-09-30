@@ -8,7 +8,7 @@ hbar = physical_constant("Planck constant")/(2*pi);
 eta0 = physical_constant("characteristic impedance of vacuum");
 mu0 = physical_constant("mag. constant");
 
-tsteps=10000;
+tsteps=200;
 zsteps=500;
 eps_yy = ones(1, zsteps);
 mu_xx = ones(1, zsteps);
@@ -98,7 +98,7 @@ for t=1:tsteps-1
 	Py_old = Py;	
 	Py = ((del_omega_a*delt-2).*Py_old + 2*delt^2*kappa.*delN.*Ey + (4-2*(omega_a*delt).^2).*Py)./(del_omega_a*delt+2);
 	delN_old = delN;
-	delN= - 2*nk1.*Ey.*(Py-Py_old) + delN_old + 2*delz*(delN0-delN).*invtau21;
+	delN= - 2*nk1.*Ey.*(Py-Py_old) + delN_old + 2*delt*(delN0-delN).*invtau21;
 			
 
 %       ey boundary condition
@@ -125,19 +125,16 @@ for t=1:tsteps-1
 
 
 	if N>Nspace
-		subplot(4,1,1);		
+		subplot(3,1,1);		
 		plot( linspace(1,zsteps,zsteps),Ey,"r",
 			linspace(1,zsteps,zsteps),Hx,"b");
 		title(sprintf("%d fields", t));
 		legend("Ey", "Hz");		
 		ylim([-1.5*Ey0,1.5*Ey0],"manual");
-		subplot(4,1,2);
-		plot( linspace(1,zsteps,zsteps),(delN-delN0)/delN0_val,"r");
-		title("population difference");
-		subplot(4,1,3);
-		plot( linspace(1,zsteps,zsteps),Py,"r");
-		title("polarization");
-		subplot(4,1,4);
+		subplot(3,1,2);
+		plot( linspace(1,zsteps,zsteps),delN,"r");%-delN0)/delN0_val,"r");
+		title("population difference");		
+		subplot(3,1,3);
 		plot(2*pi*freqs,(abs(ref)./abs(norm_src)).^2,"m",
 			2*pi*freqs,(abs(trans)./abs(norm_src)).^2,"g",
 			2*pi*freqs, (abs(ref)./abs(norm_src)).^2 + (abs(trans)./abs(norm_src)).^2,"b");		
