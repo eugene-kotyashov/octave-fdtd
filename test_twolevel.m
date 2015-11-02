@@ -116,7 +116,7 @@ plasma_freq_val = 2*pi*sqrt(kappa_val*delN0_val);
 
 
 % ------------------- calculation of reflection coefficients
-%eps_w = zeros(1,nfreqs)+6;
+%eps_w = zeros(1,nfreqs)+12;
 eps_w = 1+plasma_freq_val^2./(omega_a_val^2 - omegas.^2 - I*del_omega_a_val*omegas);
 ref_w = zeros(1,nfreqs);
 trans_w = zeros(1,nfreqs);
@@ -142,13 +142,13 @@ for i_w = 1:nfreqs
 	D=A-X*B*(A^(-1))*X*B;
 	S11=(D^(-1))*(X*B*(A^(-1))*X*A - B);
 	S22=S11;
-	S12=(D^(-1))*X*(A-B*(A*(-1))*B);
+	S12=(D^(-1))*X*(A-B*(A^(-1))*B);
 	S21=S12;
-	S = redheffer(S0_11,S0_12,S0_21,S0_22,S11,S12,S21,S22);
-	S11=[S(1,1) S(1,2); S(2,1) S(2,2)];
-	S12=[S(3,1) S(3,2); S(4,1) S(4,2)];
-	S21=[S(5,1) S(5,2); S(6,1) S(6,2)];
-	S22=[S(7,1), S(7,2); S(8,1) S(8,2)];
+%	S = redheffer(S0_11,S0_12,S0_21,S0_22,S11,S12,S21,S22);
+%	S11=[S(1,1) S(1,2); S(2,1) S(2,2)];
+%	S12=[S(3,1) S(3,2); S(4,1) S(4,2)];
+%	S21=[S(5,1) S(5,2); S(6,1) S(6,2)];
+%	S22=[S(7,1), S(7,2); S(8,1) S(8,2)];
 	ey_ref = S11*e_src;
 	ey_trans = S21*e_src;
 	ref_w(i_w)=abs(ey_ref(2))^2;
@@ -241,6 +241,7 @@ end
 
 figure;
 plot(omegas,ref_w,"g",omegas,trans_w,"r", omegas,(ref_w+trans_w),"b");
+legend("ref","trans","tot");
 toc;
 %ref=ref*delt;
 %trans=trans*delt;
