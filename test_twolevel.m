@@ -8,7 +8,7 @@ hbar = physical_constant("Planck constant")/(2*pi);
 eta0 = physical_constant("characteristic impedance of vacuum");
 mu0 = physical_constant("mag. constant");
 
-tsteps=10;
+tsteps=100000;
 zsteps=2000;
 eps_yy = ones(1, zsteps);
 mu_xx = ones(1, zsteps);
@@ -27,7 +27,7 @@ zsource = 50;
 %device specification 
 start_device = 100;
 end_device = 1800;
-eps_device = 4;
+eps_device = 1;
 eps_yy(start_device:end_device) = eps_device; 
 
 %two level parameters
@@ -100,7 +100,7 @@ src_omega = 2*pi*c0/src_lambda;
 src_period = 0.2*src_lambda/c0;
 src_freq = 1/src_period;
 
-Ey0=1e2;
+Ey0=1e8;
 %exp(-((time-6*src_period)/(src_period)).^2).*
 Ey_source = Ey0*exp(-((time-6*src_period)/(src_period)).^2).*sin(omega_a_val*time);
 %exp(-(((time+0.5*delz*nsrc/c0+0.5*delt)-6*src_period)/(src_period)).^2).*
@@ -112,18 +112,20 @@ close all;
 figure;
 hax = gca();
 
-plasma_freq_val = 2*pi*sqrt(kappa_val*delN0_val);
+plasma_freq_val = sqrt(kappa_val*delN0_val);
 
 
 % ------------------- calculation of reflection coefficients
-%eps_w = zeros(1,nfreqs)+12;
+%eps_w = zeros(1,nfreqs)+eps_device;
 eps_w = 1+plasma_freq_val^2./(omega_a_val^2 - omegas.^2 - I*del_omega_a_val*omegas);
 ref_w = zeros(1,nfreqs);
 trans_w = zeros(1,nfreqs);
 e_src=[0; 1];
 ey_trans = [0; 0];
 ey_ref = [0; 0];
-L = 20/(2*pi*omega_a_val/c0);
+k_norm = omega_a_val/c0;
+%L = 2*(2*pi/k_norm);
+L = (end_device - start_device)*delz;
 S0_11 = zeros(2);
 S0_12 = eye(2);
 S0_21 = S0_12;
@@ -212,36 +214,44 @@ for t=1:tsteps-1
 	delN_time(t) = delN(ceil(0.5*(start_device+end_device)));
 
 
-	if N>Nspace
-		subplot(3,1,1);		
-		plot( linspace(1,zsteps,zsteps),Ey,"r",
-			linspace(1,zsteps,zsteps),Hx,"b");
-		title(sprintf("%d fields", t));
-		legend("Ey", "Hz");		
-		ylim([-1.5*Ey0,1.5*Ey0],"manual");
-		subplot(3,1,2);
-		plot( linspace(1,zsteps,zsteps),delN,"r");
-		title("population difference in time");		
-		subplot(3,1,3);
-		plot(
-			%2*pi*freqs,abs(delN_ft).^2,"m"			
-			2*pi*freqs,(abs(ref)./abs(norm_src)).^2,"m",
-			2*pi*freqs,(abs(trans)./abs(norm_src)).^2,"g",
-			2*pi*freqs, (abs(ref)./abs(norm_src)).^2 + (abs(trans)./abs(norm_src)).^2,"b"
-		);		
-		title("reflectance and transmittance");
-		%legend("popul. diff. FT:");
-		legend("Ref", "Trans", "Tot");
-		ylim([0,1.2],"manual");
-		pause(0.001);
-		N = 0;		
-	end;
-	N++;
+%	if N>Nspace
+%		subplot(3,1,1);		
+%		plot( linspace(1,zsteps,zsteps),Ey,"r",
+%			linspace(1,zsteps,zsteps),Hx,"b");
+%		title(sprintf("%d fields", t));
+%		legend("Ey", "Hz");		
+%		ylim([-1.5*Ey0,1.5*Ey0],"manual");
+%		subplot(3,1,2);
+%		plot( linspace(1,zsteps,zsteps),delN,"r");
+%		title("population difference in time");		
+%		subplot(3,1,3);
+%		plot(
+%			2*pi*freqs,(abs(ref)./abs(norm_src)).^2,"m",
+%			2*pi*freqs,(abs(trans)./abs(norm_src)).^2,"g",
+%			2*pi*freqs, (abs(ref)./abs(norm_src)).^2 + (abs(trans)./abs(norm_src)).^2,"b",
+%			omegas,trans_w,"c-"
+%		);		
+%		title("reflectance and transmittance");
+%		legend("Ref", "Trans", "Tot", "calc_trans");
+%		ylim([0,1.2],"manual");
+%		pause(0.001);
+%		N = 0;		
+%	end;
+%	N++;
 end
 
-figure;
-plot(omegas,ref_w,"g",omegas,trans_w,"r", omegas,(ref_w+trans_w),"b");
-legend("ref","trans","tot");
+%figure;
+%plot(omegas,ref_w,"g",omegas,trans_w,"r", omegas,(ref_w+trans_w),"b");
+%legend("ref","trans","tot");
+		plot(
+			2*pi*freqs,(abs(ref)./abs(norm_src)).^2,"m",
+			2*pi*freqs,(abs(trans)./abs(norm_src)).^2,"gx",
+			2*pi*freqs, (abs(ref)./abs(norm_src)).^2 + (abs(trans)./abs(norm_src)).^2,"b",
+			omegas,trans_w,"c-"
+		);		
+		title("reflectance and transmittance");
+		legend("Ref", "Trans", "Tot", "Ctrans");
+		ylim([0,1.2],"manual");
 toc;
 %ref=ref*delt;
 %trans=trans*delt;
