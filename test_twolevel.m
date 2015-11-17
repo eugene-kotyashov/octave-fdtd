@@ -27,7 +27,7 @@ zsource = 50;
 %device specification 
 start_device = 100;
 end_device = 1800;
-eps_device = 1;
+eps_device = 4;
 eps_yy(start_device:end_device) = eps_device; 
 
 %two level parameters
@@ -73,6 +73,11 @@ n3 = zeros(1,zsteps);
 n3_val = 2*delN0_val*delt/(delt+2*tau21);
 n3(start_device:end_device)=n3_val;
 
+pump_rate = 10*tau21*delN0_val;
+n4 = zeros(1,zsteps);
+n4_val = 2*pump_rate*tau21*delt/(delt+2*tau21);
+n4(start_device:end_device)=n4_val;
+
 
 up_hx = ((c0*delt)/delz)./mu_xx;
 up_dy = (c0*delt)/delz;
@@ -109,15 +114,14 @@ N=0;
 Nspace = 100;
 
 close all;
-figure;
-hax = gca();
+%figure;
 
 plasma_freq_val = sqrt(kappa_val*delN0_val);
 
 
 % ------------------- calculation of reflection coefficients
 %eps_w = zeros(1,nfreqs)+eps_device;
-eps_w = 1+plasma_freq_val^2./(omega_a_val^2 - omegas.^2 - I*del_omega_a_val*omegas);
+eps_w = eps_device+plasma_freq_val^2./(omega_a_val^2 - omegas.^2 - I*del_omega_a_val*omegas);
 ref_w = zeros(1,nfreqs);
 trans_w = zeros(1,nfreqs);
 e_src=[0; 1];
@@ -202,7 +206,7 @@ for t=1:tsteps-1
 	Ey = (Dy-Py)./eps_yy;
 
 %	update delN here
-	delN = - n1_val.*delN + n2_val.*(Ey+Eyold).*(Py-Py_old) - n3_val;
+	delN = - n1_val.*delN - n2_val.*(Ey+Eyold).*(Py-Py_old) + n3_val + n4;
 
 	tmp = K.^t;
 	ref+= Ey(1)*tmp;
@@ -234,7 +238,7 @@ for t=1:tsteps-1
 %		title("reflectance and transmittance");
 %		legend("Ref", "Trans", "Tot", "calc_trans");
 %		ylim([0,1.2],"manual");
-%		pause(0.001);
+%		pause(0.001);		
 %		N = 0;		
 %	end;
 %	N++;
@@ -245,7 +249,7 @@ end
 %legend("ref","trans","tot");
 		plot(
 			2*pi*freqs,(abs(ref)./abs(norm_src)).^2,"m",
-			2*pi*freqs,(abs(trans)./abs(norm_src)).^2,"gx",
+			2*pi*freqs,(abs(trans)./abs(norm_src)).^2,"g",
 			2*pi*freqs, (abs(ref)./abs(norm_src)).^2 + (abs(trans)./abs(norm_src)).^2,"b",
 			omegas,trans_w,"c-"
 		);		
