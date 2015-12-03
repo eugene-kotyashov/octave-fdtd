@@ -55,7 +55,6 @@ kappa(start_device:end_device) = ((1/eps0)*gamma_r./gamma_CEO(start_device:end_d
 plasma_freq_val = 2*pi*sqrt(kappa_val*delN0_val);
 
 
-
 %define simulation steps
 delt = 0.001*(2*pi/omega_a_val);
 delz = 2*c0*delt;
@@ -73,7 +72,7 @@ n3 = zeros(1,zsteps);
 n3_val = 2*delN0_val*delt/(delt+2*tau21);
 n3(start_device:end_device)=n3_val;
 
-pump_rate = 10*tau21*delN0_val;
+pump_rate = 100*delN0_val/tau21;
 n4 = zeros(1,zsteps);
 n4_val = 2*pump_rate*tau21*delt/(delt+2*tau21);
 n4(start_device:end_device)=n4_val;
@@ -98,7 +97,7 @@ delN_ft = zeros(1, nfreqs);
 delN_time =zeros(1,tsteps);
 
 
-time = linspace(0,delt*tsteps, tsteps);
+time_t = linspace(0,delt*tsteps, tsteps);
 nsrc = 1;
 src_lambda = 1000*delz;
 src_omega = 2*pi*c0/src_lambda;
@@ -106,12 +105,11 @@ src_period = 0.2*src_lambda/c0;
 src_freq = 1/src_period;
 
 Ey0=1e8;
-%exp(-((time-6*src_period)/(src_period)).^2).*
-Ey_source = Ey0*exp(-((time-6*src_period)/(src_period)).^2).*sin(omega_a_val*time);
-%exp(-(((time+0.5*delz*nsrc/c0+0.5*delt)-6*src_period)/(src_period)).^2).*
-Hx_source = -Ey0*sqrt(eps_yy(1,zsource)/mu_xx(1,zsource)).*exp(-(((time+0.5*delz*nsrc/c0+0.5*delt)-6*src_period)/(src_period)).^2).*sin(omega_a_val*(time+0.5*delz*nsrc/c0+0.5*delt));
+Ey_source = Ey0*exp(-((time_t-6*src_period)/(src_period)).^2).*sin(omega_a_val*time_t);
+Hx_source = -Ey0*sqrt(eps_yy(1,zsource)/mu_xx(1,zsource)).*exp(-(((time_t+0.5*delz*nsrc/c0+0.5*delt)-6*src_period)/(src_period)).^2).*sin(omega_a_val*(time_t+0.5*delz*nsrc/c0+0.5*delt));
 N=0;
 Nspace = 100;
+delN_time_t = zeros(1,tsteps);
 
 close all;
 %figure;
@@ -168,7 +166,7 @@ h1 = h2 = h3 = 0;
 e1 = e2 = e3 = 0;
 
 
-for t=1:tsteps-1
+for t=1:tsteps
 	Hx(1:zsteps-1)+=up_hx(1:zsteps-1).*diff(Ey);			
 
 %	hx boundary condition
@@ -206,7 +204,7 @@ for t=1:tsteps-1
 	Ey = (Dy-Py)./eps_yy;
 
 %	update delN here
-	delN = - n1_val.*delN - n2_val.*(Ey+Eyold).*(Py-Py_old) + n3_val + n4;
+	delN = - n1.*delN - n2.*(Ey+Eyold).*(Py-Py_old) + n3 - n4;
 
 	tmp = K.^t;
 	ref+= Ey(1)*tmp;
@@ -218,7 +216,7 @@ for t=1:tsteps-1
 	delN_time(t) = delN(ceil(0.5*(start_device+end_device)));
 
 
-%	if N>Nspace
+%	if N==Nspace
 %		subplot(3,1,1);		
 %		plot( linspace(1,zsteps,zsteps),Ey,"r",
 %			linspace(1,zsteps,zsteps),Hx,"b");
@@ -239,14 +237,11 @@ for t=1:tsteps-1
 %		legend("Ref", "Trans", "Tot", "calc_trans");
 %		ylim([0,1.2],"manual");
 %		pause(0.001);		
-%		N = 0;		
+%		N = 0;
 %	end;
 %	N++;
+		delN_time(t) = delN(ceil(0.5*(start_device+end_device)));	
 end
-
-%figure;
-%plot(omegas,ref_w,"g",omegas,trans_w,"r", omegas,(ref_w+trans_w),"b");
-%legend("ref","trans","tot");
 		plot(
 			2*pi*freqs,(abs(ref)./abs(norm_src)).^2,"m",
 			2*pi*freqs,(abs(trans)./abs(norm_src)).^2,"g",
@@ -256,6 +251,9 @@ end
 		title("reflectance and transmittance");
 		legend("Ref", "Trans", "Tot", "Ctrans");
 		ylim([0,1.2],"manual");
+		figure;
+		plot( time_t,delN_time,"r");
+		title("population difference in time");	
 toc;
 %ref=ref*delt;
 %trans=trans*delt;
