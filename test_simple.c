@@ -2,6 +2,48 @@
 #include <stdlib.h>
 #include <math.h>
 #include <complex.h>
+#include <pthread.h>
+
+
+#define NUM_THREADS 4
+
+
+typedef struct tag_chunk_info_t
+{
+	int 	tid;	
+	double * Ey;
+	double * up_hx;
+	double * up_ey;
+	double * Hx;
+	int 	z_start;
+	int	z_end;
+	
+} chunk_info_t;
+
+void* updateHx(void* input)
+{		
+	chunk_info_t * info = (chunk_info_t*)input;
+	if (info == NULL) pthread_exit(NULL);
+	int iz;
+	for(iz=info->z_start;iz<=info->z_end;iz++)
+	{	
+		info->Hx[iz]+=info->up_hx[iz]*(info->Ey[iz+1]-info->Ey[iz]);			
+	}
+	pthread_exit(NULL);
+}
+
+void* updateEy(void* input)
+{
+	chunk_info_t * info = (chunk_info_t*)input;
+	if (info == NULL) pthread_exit(NULL);
+	int iz;
+	for(iz=info->z_start;iz<=info->z_end;iz++)
+	{
+		info->Ey[iz]+=info->up_ey[iz]*(info->Hx[iz]-info->Hx[iz-1]);
+	}
+	pthread_exit(NULL);
+}
+
 
 void main()
 {
@@ -106,14 +148,51 @@ FILE * gnuplotPipe = popen ("gnuplot ", "w");
 #endif
 
 int t;
+
+pthread_t threads[NUM_THREADS];
+pthread_attr_t attr;
+pthread_attr_init(&attr);
+pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+int rc;
+void* status;
+chunk_info_t hx_info[NUM_THREADS];
+chunk_info_t ey_info[NUM_THREADS];
+for(iz=0;iz<NUM_THREADS;iz++) 
+{
+	hx_info[iz].Ey = Ey;
+	ey_info[iz].Ey = Ey;
+	hx_info[iz].Hx = Hx;
+	ey_info[iz].Hx = Hx;
+	hx_info[iz].up_ey = up_ey;
+	ey_info[iz].up_ey = up_ey;
+	hx_info[iz].up_hx = up_hx;
+	ey_info[iz].up_hx = up_hx;
+	hx_info[iz].tid = iz;
+//for Hx update iz runs from 0 to zsteps-2 - total of zsteps -1 elements to update
+	hx_info[iz].z_start = (zsteps - 1)*iz/NUM_THREADS;
+	hx_info[iz].z_end = (zsteps - 1)*(iz+1)/NUM_THREADS-1;	
+//for Ey update iz runs from 1 to zsteps-1 - total of zsteps -1 elements to update
+	ey_info[iz].z_start = (zsteps - 1)*iz/NUM_THREADS+1;
+	ey_info[iz].z_end = (zsteps - 1)*(iz+1)/NUM_THREADS-1+1;
+	if (iz == NUM_THREADS-1)
+	{
+		hx_info[iz].z_end = zsteps-2;
+		ey_info[iz].z_end = zsteps-1;
+	}
+}
+
 for ( t=0; t<tsteps; t++)
 {
 
-
-	for(iz=0;iz<zsteps-1;iz++)
-	{	
-		Hx[iz]+=up_hx[iz]*(Ey[iz+1]-Ey[iz]);			
+	for(iz=0;iz<NUM_THREADS;iz++)
+	{		
+		rc = pthread_create(&threads[iz],&attr, updateHx, (void*)(&hx_info[iz]));
 	}
+	for(iz=0;iz<NUM_THREADS;iz++)
+	{
+		rc = pthread_join(threads[iz],&status);
+	}
+	
 
 //	hx boundary condition
 	Hx[zsteps-1]+=up_hx[zsteps-1]*(e3-Ey[zsteps-1]);
@@ -125,11 +204,15 @@ for ( t=0; t<tsteps; t++)
 //      ey boundary condition
 	Ey[0]+=up_ey[0]*(Hx[0]-h3);
 
-
-	for(iz=1;iz<zsteps;iz++)
+	for(iz=0;iz<NUM_THREADS;iz++)
+	{		
+		rc = pthread_create(&threads[iz],&attr, updateEy, (void*)(&ey_info[iz]));
+	}	
+	for(iz=0;iz<NUM_THREADS;iz++)
 	{
-		Ey[iz]+=up_ey[iz]*(Hx[iz]-Hx[iz-1]);
+		rc = pthread_join(threads[iz],&status);
 	}
+	
 
 	e3 = e2;
 	e2 = e1;
@@ -209,5 +292,7 @@ free(norm_src);
 
 free(Hx_source);
 free(Ey_source);
+
+pthread_exit(NULL);
 
 }
