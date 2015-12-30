@@ -5,10 +5,11 @@
 #include <pthread.h>
 
 
-#define NUM_THREADS 2
+
 
 
 pthread_barrier_t time_step_barrier;
+int NUM_THREADS = 2;
 
 typedef struct tag_chunk_info_t
 {
@@ -145,7 +146,7 @@ for ( t=0; t<tsteps; t++)
 		trans[iz]+=Ey[zsteps-1]*tmp;
 		norm_src[iz]+=Ey_source[t]*tmp;		
 	}
-	if (info->tid == 0)
+	if (info->tid == NUM_THREADS-1)
 		Ey_time[t] = Ey[zsteps-1];
 
 #ifdef GNUPLOT_PIPING
@@ -174,9 +175,15 @@ pthread_exit(NULL);
 }
 
 
-int main()
+int main(int argc, char* args[])
 {
 
+if (argc == 2) 
+{
+	sscanf(args[1],"%d",&NUM_THREADS);
+}
+
+printf("\nusing %d threads\n", NUM_THREADS);
 
 double pi = M_PI;
 double c0=3e8;
