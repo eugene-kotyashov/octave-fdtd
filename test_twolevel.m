@@ -8,8 +8,23 @@ hbar = physical_constant("Planck constant")/(2*pi);
 eta0 = physical_constant("characteristic impedance of vacuum");
 mu0 = physical_constant("mag. constant");
 
+
+%two level parameters
+omega_a_val = 2*pi*5e14;
+
+
+
+%define simulation steps
+delt = 0.002*(2*pi/omega_a_val);
+delz = 2*c0*delt;
+
 tsteps=100000;
-zsteps=2000;
+%device specification 
+start_device = 100;
+Length = 0.3e-5;
+end_device = start_device+floor(Length/delz);
+zsteps=end_device + 50;
+
 eps_yy = ones(1, zsteps);
 mu_xx = ones(1, zsteps);
 Ey=zeros(1,zsteps);
@@ -21,17 +36,13 @@ Py_old = zeros(1,zsteps);
 delN_old = zeros(1,zsteps);
 delN_old2 = zeros(1,zsteps);
 Eyold = zeros(1,zsteps);
-
 Hx=zeros(1,zsteps);
 zsource = 50;
-%device specification 
-start_device = 100;
-end_device = 1800;
+
 eps_device = 4;
 eps_yy(start_device:end_device) = eps_device; 
 
 %two level parameters
-omega_a_val = 2*pi*5e14;
 omega_a = zeros(1,zsteps);
 omega_a(start_device:end_device) = omega_a_val;
 del_omega_a_val = 2*pi*5e13;
@@ -43,21 +54,17 @@ delN0_val = 1e26;
 delN0=zeros(1,zsteps);
 delN0(start_device:end_device) = delN0_val;
 delN = delN0;
-tau21 = 20e-9;
+gamma_r=5e7; %radiative decay rate
+tau21 = 1/gamma_r;
 invtau21 = zeros(1,zsteps);
 invtau21(start_device:end_device) =1/tau21;
-gamma_r=1e7;
+
 gamma_CEO=(qe^2/me)*(omega_a.^2/(6*pi*eps0*c0^3));
 gamma_CEO_val=(qe^2/me)*(omega_a_val^2/(6*pi*eps0*c0^3));
 kappa = zeros(1,zsteps);
 kappa_val = ((1/eps0)*gamma_r/gamma_CEO_val)*(qe^2/me);
 kappa(start_device:end_device) = ((1/eps0)*gamma_r./gamma_CEO(start_device:end_device))*(qe^2/me);
 plasma_freq_val = 2*pi*sqrt(kappa_val*delN0_val);
-
-
-%define simulation steps
-delt = 0.001*(2*pi/omega_a_val);
-delz = 2*c0*delt;
 
 %update coeffs for delN
 n1 = zeros(1,zsteps);
@@ -72,7 +79,7 @@ n3 = zeros(1,zsteps);
 n3_val = 2*delN0_val*delt/(delt+2*tau21);
 n3(start_device:end_device)=n3_val;
 
-pump_rate = 100*delN0_val/tau21;
+pump_rate = 10000*delN0_val/tau21;
 n4 = zeros(1,zsteps);
 n4_val = 2*pump_rate*tau21*delt/(delt+2*tau21);
 n4(start_device:end_device)=n4_val;
@@ -83,10 +90,10 @@ up_dy = (c0*delt)/delz;
 
 
 
-max_freq = 2*omega_a_val/(2*pi);
+max_freq = 3*omega_a_val/(2*pi);
 
 %prepare fourier transform arrays
-nfreqs = 400;
+nfreqs = 600;
 freqs = linspace(0,max_freq,nfreqs);
 omegas = 2*pi*freqs;
 K = exp(-1i*2*pi*delt*freqs);
@@ -104,7 +111,7 @@ src_omega = 2*pi*c0/src_lambda;
 src_period = 0.2*src_lambda/c0;
 src_freq = 1/src_period;
 
-Ey0=1e8;
+Ey0=1e3;
 Ey_source = Ey0*exp(-((time_t-6*src_period)/(src_period)).^2).*sin(omega_a_val*time_t);
 Hx_source = -Ey0*sqrt(eps_yy(1,zsource)/mu_xx(1,zsource)).*exp(-(((time_t+0.5*delz*nsrc/c0+0.5*delt)-6*src_period)/(src_period)).^2).*sin(omega_a_val*(time_t+0.5*delz*nsrc/c0+0.5*delt));
 N=0;
