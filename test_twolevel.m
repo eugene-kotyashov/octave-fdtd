@@ -15,10 +15,11 @@ omega_a_val = 2*pi*5e14;
 
 
 %define simulation steps
-delt = 0.002*(2*pi/omega_a_val);
-delz = 2*c0*delt;
+delt = 0.05*(2*pi/(3*omega_a_val));
+eps_device = 4;
+delz = 2*delt*c0;
 
-tsteps=100000;
+tsteps=1000000;
 %device specification 
 start_device = 100;
 Length = 0.3e-5;
@@ -39,7 +40,7 @@ Eyold = zeros(1,zsteps);
 Hx=zeros(1,zsteps);
 zsource = 50;
 
-eps_device = 4;
+
 eps_yy(start_device:end_device) = eps_device; 
 
 %two level parameters
@@ -53,7 +54,7 @@ nk1(start_device:end_device) = mu0./(hbar*omega_a(start_device:end_device));
 delN0_val = 1e26;
 delN0=zeros(1,zsteps);
 delN0(start_device:end_device) = delN0_val;
-delN = delN0;
+delN = -delN0;
 gamma_r=5e7; %radiative decay rate
 tau21 = 1/gamma_r;
 invtau21 = zeros(1,zsteps);
@@ -102,14 +103,13 @@ trans = zeros(1, nfreqs);
 norm_src = zeros(1, nfreqs);
 delN_ft = zeros(1, nfreqs);
 delN_time =zeros(1,tsteps);
+_time =zeros(1,tsteps);
 
 
 time_t = linspace(0,delt*tsteps, tsteps);
 nsrc = 1;
-src_lambda = 1000*delz;
-src_omega = 2*pi*c0/src_lambda;
-src_period = 0.2*src_lambda/c0;
-src_freq = 1/src_period;
+src_omega = omega_a_val;
+src_period = 2*pi/src_omega;
 
 Ey0=1e3;
 Ey_source = Ey0*exp(-((time_t-6*src_period)/(src_period)).^2).*sin(omega_a_val*time_t);
@@ -221,6 +221,7 @@ for t=1:tsteps
 		delN_ft+=delN(ceil(0.5*(start_device+end_device)))*tmp/delN0_val;
 	end;
 	delN_time(t) = delN(ceil(0.5*(start_device+end_device)));
+	Ey_time(t)=Ey(zsteps);
 
 
 %	if N==Nspace
@@ -249,18 +250,22 @@ for t=1:tsteps
 %	N++;
 		delN_time(t) = delN(ceil(0.5*(start_device+end_device)));	
 end
-		plot(
-			2*pi*freqs,(abs(ref)./abs(norm_src)).^2,"m",
-			2*pi*freqs,(abs(trans)./abs(norm_src)).^2,"g",
-			2*pi*freqs, (abs(ref)./abs(norm_src)).^2 + (abs(trans)./abs(norm_src)).^2,"b",
-			omegas,trans_w,"c-"
-		);		
-		title("reflectance and transmittance");
-		legend("Ref", "Trans", "Tot", "Ctrans");
-		ylim([0,1.2],"manual");
-		figure;
-		plot( time_t,delN_time,"r");
-		title("population difference in time");	
+plot(
+	2*pi*freqs,(abs(ref)./abs(norm_src)).^2,"m",
+	2*pi*freqs,(abs(trans)./abs(norm_src)).^2,"g",
+	2*pi*freqs, (abs(ref)./abs(norm_src)).^2 + (abs(trans)./abs(norm_src)).^2,"b",
+	omegas,trans_w,"c-"
+);		
+title("reflectance and transmittance");
+legend("Ref", "Trans", "Tot", "Ctrans");
+ylim([0,1.2],"manual");
+figure;
+subplot(2,1,1);
+plot( time_t,delN_time,"r");
+title("population difference in time");
+subplot(2,1,2);
+plot( time_t,Ey_time,"b");
+title("Ey transmitterd in time");		
 toc;
 %ref=ref*delt;
 %trans=trans*delt;
