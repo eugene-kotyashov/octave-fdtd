@@ -8,6 +8,8 @@
 
 
 
+
+
 pthread_barrier_t time_step_barrier;
 int NUM_THREADS = 2;
 
@@ -54,6 +56,28 @@ double e3 = 0;
 #ifdef GNUPLOT_PIPING
 FILE * gnuplotPipe;
 #endif
+
+
+complex double c_pow(complex double val, int power)
+{
+	double resRe, resIm;
+	double rho =  pow(cabs(val),power);
+	double phi = atan2(cimag(val),creal(val));//carg(val);
+	resRe = rho*cos(phi*power);
+	resIm = rho*sin(phi*power);
+	return resRe + I*resIm;
+}
+
+complex double c_exp(complex double val)
+{
+	double resRe, resIm;
+	double valReExp = exp(creal(val));
+	double valIm = cimag(val);
+	resRe = valReExp*cos(valIm);
+	resIm = valReExp*sin(valIm);
+	return resRe + I*resIm;
+
+}
 
 
 void * do_time_step(void * input)
@@ -141,7 +165,7 @@ for ( t=0; t<tsteps; t++)
 
 	complex double tmp;
 	for(iz=freq_start;iz<=freq_end; iz++){
-		tmp = cpow(K[iz],t);
+		tmp = c_pow(K[iz],t);
 		ref[iz]+= Ey[0]*tmp;
 		trans[iz]+=Ey[zsteps-1]*tmp;
 		norm_src[iz]+=Ey_source[t]*tmp;		
@@ -190,7 +214,7 @@ double c0=3e8;
 double delt = 1;
 double delz = 2*c0*delt;
 
-tsteps=20000;
+tsteps=200000;
 zsteps=500;
 
 double* eps_yy = (double*)malloc(zsteps*sizeof(double));
@@ -249,7 +273,7 @@ norm_src = (complex double*)malloc(nfreqs*sizeof(complex double));
 double del_freq = max_freq/nfreqs;
 for(iz=0;iz<nfreqs; iz++)
 {
-	K[iz] = cexp(-I*2*pi*delt*del_freq*iz);
+	K[iz] = c_exp(-I*2*pi*delt*del_freq*iz);
 	ref[iz] = 0;
 	trans[iz] = 0;
 	norm_src[iz] = 0;
